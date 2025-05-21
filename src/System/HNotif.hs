@@ -13,7 +13,7 @@ import qualified Data.Map as Map
 import System.Exit (exitFailure)
 import System.HNotif.Meta
 import System.HNotif.Notifications
-import Data.IORef (newIORef, readIORef, modifyIORef, writeIORef, IORef)
+import Data.IORef (newIORef, readIORef, writeIORef, IORef)
 import DBus.Internal.Message
 import Data.Word (Word32)
 
@@ -67,7 +67,7 @@ removeExpired client config ref = do
     mapM_ (\i -> emit client (closeSignal i Expired)) rms
 
 displayNotifications :: Map ID Notification -> IO ()
-displayNotifications notifications = mapM_ (\(_,n) -> putStrLn ("[" ++ show (timeout n) ++ "] " ++summary n ++ ": " ++ body n)) (Map.toList notifications)
+displayNotifications notifications = mapM_ (\(_,n) -> putStrLn ("[" ++ show (timeout n) ++ "] " ++ summary n ++ ": " ++ body n)) (Map.toList notifications)
 
 updateTimeouts :: HNotifConfig -> Map ID Notification -> (Map ID Notification, [ ID ])
 updateTimeouts config = Map.foldrWithKey (updateTimeout config) (Map.empty, [])
