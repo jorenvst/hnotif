@@ -1,4 +1,4 @@
-module System.HNotif.Meta where
+module System.HNotif.DBus.Meta where
 
 -- capabilities
 capabilities :: IO [ String ]

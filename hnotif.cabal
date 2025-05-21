@@ -25,9 +25,17 @@ source-repository head
 
 library
   exposed-modules:
-      System.HNotif
-      System.HNotif.Meta
-      System.HNotif.Notifications
+      Old.System.HNotif
+      Old.System.HNotif.Meta
+      Old.System.HNotif.Notifications
+      System.HNotif.Configuration
+      System.HNotif.DBus.DBus
+      System.HNotif.DBus.Meta
+      System.HNotif.DBus.Notification
+      System.HNotif.Display
+      System.HNotif.HNotif
+      System.HNotif.Notification
+      System.HNotif.Types
   other-modules:
       Paths_hnotif
   autogen-modules:
@@ -39,6 +47,9 @@ library
       base >=4.7 && <5
     , containers
     , dbus
+    , gtk
+    , stm
+    , time
     , transformers
   default-language: Haskell2010
 
@@ -55,7 +66,10 @@ executable hnotif-exe
       base >=4.7 && <5
     , containers
     , dbus
+    , gtk
     , hnotif
+    , stm
+    , time
     , transformers
   default-language: Haskell2010
 
@@ -73,6 +87,9 @@ test-suite hnotif-test
       base >=4.7 && <5
     , containers
     , dbus
+    , gtk
     , hnotif
+    , stm
+    , time
     , transformers
   default-language: Haskell2010

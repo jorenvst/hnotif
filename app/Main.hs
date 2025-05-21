@@ -1,6 +1,7 @@
 module Main (main) where
 
-import System.HNotif
+import System.HNotif.HNotif
+import System.HNotif.Configuration
 
 main :: IO ()
-main = hnotif defaultHNotifConfig
+main = hnotif defHNotifConfig

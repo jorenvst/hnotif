@@ -24,6 +24,9 @@ dependencies:
 - dbus
 - transformers
 - containers
+- gtk
+- stm
+- time
 
 ghc-options:
 - -Wall
@@ -42,6 +45,9 @@ library:
   - dbus
   - transformers
   - containers
+  - gtk
+  - stm
+  - time
 
 executables:
   hnotif-exe:
