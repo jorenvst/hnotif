@@ -1,6 +1,7 @@
 module System.HNotif.Notifications where
 
 import DBus
+import DBus.Client (throwError)
 
 import Control.Monad.Trans.State
 import Control.Monad.IO.Class (MonadIO(liftIO))
@@ -11,6 +12,8 @@ import qualified Data.Map as Map
 import Data.Int (Int32)
 import Data.Word (Word32)
 import Data.Maybe 
+import Control.Exception (throwIO, Exception)
+import Data.Typeable (Typeable)
 
 -- TODO move to separate module
 -- duration in milliseconds
@@ -49,13 +52,24 @@ data Notification = Notification
     , timeout :: Timeout
     } deriving (Eq, Show)
 
+data EmptyError = EmptyError deriving (Typeable)
+instance Show EmptyError where
+    show _ = ""
+instance Exception EmptyError
+
 notify :: IORef (Map ID Notification) -> String -> Word32 -> FilePath -> String -> String -> [ String ] -> Map String Variant -> Int32 -> IO ID
 notify ref an rid ai sm b as hs et = do
     let n = Notification an rid ai sm b as hs (notificationTimeout et)
     modifyIORef ref (Map.insert rid n)
     return rid
 
--- TODO: send empty dbus error if not present
 closeNotification :: IORef (Map ID Notification) -> ID -> IO ()
 closeNotification ref rid = do
+    notifications <- readIORef ref
+    handleClose notifications rid
     modifyIORef ref (Map.delete rid)
+
+handleClose :: Map ID Notification -> ID -> IO ()
+handleClose notifications rid
+    | isNothing $ Map.lookup rid notifications = throwIO EmptyError
+    | otherwise = return ()

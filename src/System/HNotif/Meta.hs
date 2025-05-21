@@ -2,7 +2,9 @@ module System.HNotif.Meta where
 
 -- capabilities
 capabilities :: IO [ String ]
-capabilities = return []
+capabilities = return
+    [ "body"
+    ]
 
 -- server info
 type Name = String
