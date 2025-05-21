@@ -13,8 +13,9 @@ import qualified Data.Map as Map
 import System.Exit (exitFailure)
 import System.HNotif.Meta
 import System.HNotif.Notifications
-import Data.IORef (newIORef, readIORef, modifyIORef)
+import Data.IORef (newIORef, readIORef, modifyIORef, writeIORef, IORef)
 import DBus.Internal.Message
+import Data.Word (Word32)
 
 data HNotifConfig = HNotifConfig
     { defaultTimeout :: Timeout
@@ -47,28 +48,36 @@ hnotif config = do
         , interfaceMethods =
             [ autoMethod "GetCapabilities" capabilities
             , autoMethod "GetServerInformation" serverInformation
-            , autoMethod "Notify" (notify client activeNotifications)
-            , autoMethod "CloseNotification" (\i -> closeNotification client activeNotifications i *> emit client closeSignal)
+            , autoMethod "Notify" (notify activeNotifications)
+            , autoMethod "CloseNotification" (\i -> closeNotification activeNotifications i *> emit client (closeSignal i CloseCalled))
             ]
         }
     putStrLn "listening..."
     -- TODO: make sure that loop takes exactly 1 ms by measuring time
-    -- TODO: make cleaner
     forever $ do
-        modifyIORef activeNotifications (Map.fromList . updateTimeouts config . Map.toList)
+        removeExpired client config activeNotifications
         readIORef activeNotifications >>= displayNotifications
         threadDelay 1000
+
+removeExpired :: Client -> HNotifConfig -> IORef (Map ID Notification) -> IO ()
+removeExpired client config ref = do
+    notifications <- readIORef ref
+    let (nfs, rms) = updateTimeouts config notifications
+    writeIORef ref nfs
+    mapM_ (\i -> emit client (closeSignal i Expired)) rms
 
 displayNotifications :: Map ID Notification -> IO ()
 displayNotifications notifications = mapM_ (\(_,n) -> putStrLn ("[" ++ show (timeout n) ++ "] " ++summary n ++ ": " ++ body n)) (Map.toList notifications)
 
-updateTimeouts :: HNotifConfig -> [ (ID, Notification) ] -> [ (ID, Notification) ]
-updateTimeouts _ [] = []
-updateTimeouts config ((i,n):ns)
-    | isForever $ timeout n = (i,n) : updateTimeouts config ns
-    | isDefaultDuration $ timeout n = updateTimeouts config ((i, n { timeout = defaultTimeout config }) : ns)
-    | d == 0 = updateTimeouts config ns
-    | otherwise = (i, n { timeout = Duration (d - 1) }) : updateTimeouts config ns
+updateTimeouts :: HNotifConfig -> Map ID Notification -> (Map ID Notification, [ ID ])
+updateTimeouts config = Map.foldrWithKey (updateTimeout config) (Map.empty, [])
+
+updateTimeout :: HNotifConfig -> ID -> Notification -> (Map ID Notification, [ ID ]) -> (Map ID Notification, [ ID ])
+updateTimeout config i n (acc, rms)
+    | isForever $ timeout n = (Map.insert i n acc, rms)
+    | isDefaultDuration $ timeout n = (Map.insert i (n { timeout = defaultTimeout config }) acc, rms)
+    | d == 0 = (acc, i : rms)
+    | otherwise = (Map.insert i (n { timeout = Duration (d - 1) }) acc, rms)
     where (Duration d) = timeout n
 
 handleResult :: RequestNameReply -> Maybe String
@@ -78,5 +87,15 @@ handleResult NameInQueue = Just "waiting in queue"
 handleResult NameExists = Just "name is already taken, cannot take over service"
 handleResult _ = Just "something whent wrong"
 
-closeSignal :: Signal
-closeSignal = Signal notifyPath (interfaceName_ notifyBus) "NotificationClosed" Nothing Nothing []
+
+data ClosingReason = Expired | Dismissed | CloseCalled | Undefined deriving (Eq, Show)
+
+closingReasonVariant :: ClosingReason -> Variant
+closingReasonVariant Expired = toVariant (1 :: Word32)
+closingReasonVariant Dismissed = toVariant (2 :: Word32)
+closingReasonVariant CloseCalled = toVariant (3 :: Word32)
+closingReasonVariant Undefined = toVariant (4 :: Word32)
+
+closeSignal :: ID -> ClosingReason -> Signal
+closeSignal i r = Signal notifyPath (interfaceName_ notifyBus) "NotificationClosed" Nothing Nothing [toVariant i, closingReasonVariant r]
+

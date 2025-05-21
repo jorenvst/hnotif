@@ -43,7 +43,6 @@ seconds = Duration . (*1000)
 type ID = Word32
 data Notification = Notification
     { appName :: String
-    , replacesId :: ID
     , appIcon :: FilePath
     , summary :: String
     , body :: String
@@ -57,19 +56,19 @@ instance Show EmptyError where
     show _ = ""
 instance Exception EmptyError
 
-notify :: Client -> IORef (Map ID Notification) -> String -> Word32 -> FilePath -> String -> String -> [ String ] -> Map String Variant -> Int32 -> IO ID
-notify _ ref an rid ai sm b as hs et = do
-    let n = Notification an rid ai sm b as hs (notificationTimeout et)
+notify :: IORef (Map ID Notification) -> String -> Word32 -> FilePath -> String -> String -> [ String ] -> Map String Variant -> Int32 -> IO ID
+notify ref an rid ai sm b as hs et = do
+    let n = Notification an ai sm b as hs (notificationTimeout et)
     modifyIORef ref (Map.insert rid n)
     return rid
 
-closeNotification :: Client -> IORef (Map ID Notification) -> ID -> IO ()
-closeNotification client ref rid = do
+closeNotification :: IORef (Map ID Notification) -> ID -> IO ()
+closeNotification ref rid = do
     notifications <- readIORef ref
     handleClose notifications rid
     modifyIORef ref (Map.delete rid)
 
 handleClose :: Map ID Notification -> ID -> IO ()
 handleClose notifications rid
-    | isNothing $ Map.lookup rid notifications = throwIO EmptyError
+    | Map.notMember rid notifications = throwIO EmptyError
     | otherwise = return ()
