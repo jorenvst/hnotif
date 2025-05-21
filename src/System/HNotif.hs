@@ -14,6 +14,7 @@ import System.Exit (exitFailure)
 import System.HNotif.Meta
 import System.HNotif.Notifications
 import Data.IORef (newIORef, readIORef, modifyIORef)
+import DBus.Internal.Message
 
 data HNotifConfig = HNotifConfig
     { defaultTimeout :: Timeout
@@ -46,8 +47,8 @@ hnotif config = do
         , interfaceMethods =
             [ autoMethod "GetCapabilities" capabilities
             , autoMethod "GetServerInformation" serverInformation
-            , autoMethod "Notify" (notify activeNotifications)
-            , autoMethod "CloseNotification" (closeNotification activeNotifications)
+            , autoMethod "Notify" (notify client activeNotifications)
+            , autoMethod "CloseNotification" (\i -> closeNotification client activeNotifications i *> emit client closeSignal)
             ]
         }
     putStrLn "listening..."
@@ -77,3 +78,5 @@ handleResult NameInQueue = Just "waiting in queue"
 handleResult NameExists = Just "name is already taken, cannot take over service"
 handleResult _ = Just "something whent wrong"
 
+closeSignal :: Signal
+closeSignal = Signal notifyPath (interfaceName_ notifyBus) "NotificationClosed" Nothing Nothing []
