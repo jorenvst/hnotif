@@ -4,7 +4,6 @@ import System.HNotif.Types
 import System.HNotif.Configuration
 
 import DBus
-import DBus.Client
 
 import Data.Time.Clock.POSIX
 import Data.Maybe

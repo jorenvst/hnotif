@@ -8,7 +8,6 @@ import qualified Data.Map as Map
 import Data.Time.Clock.POSIX
 
 import GHC.Conc (TVar)
-import Graphics.UI.Gtk (Window)
 
 -- expiration
 type Duration = Maybe Int32
@@ -31,14 +30,12 @@ data Notification = Notification
     } deriving (Show, Eq)
 
 -- the global state
-data HNotifState = HNotifState
+newtype HNotifState = HNotifState
     { notifications :: Map ID Notification
-    , windows :: Map ID Window
     }
 type HNotifStateVar = TVar HNotifState
 
 initialState :: HNotifState
 initialState = HNotifState
     { notifications = Map.empty
-    , windows = Map.empty
     }

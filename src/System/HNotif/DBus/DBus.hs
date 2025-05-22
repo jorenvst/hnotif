@@ -5,6 +5,7 @@ import System.HNotif.Configuration
 import System.HNotif.Types
 import System.HNotif.Notification
 import System.HNotif.DBus.Meta
+import System.HNotif.Display.Display
 
 import DBus.Client
 import System.HNotif.DBus.Notification
@@ -14,7 +15,7 @@ import qualified Data.Map as Map
 import System.Exit (exitFailure)
 import Control.Monad
 import Control.Concurrent.STM
-import Control.Concurrent (threadDelay)
+import Control.Concurrent (threadDelay, forkIO)
 
 
 hnotifDBus :: HNotifConfig -> HNotifStateVar -> IO ()
@@ -30,6 +31,7 @@ hnotifDBus config state = do
             , autoMethod "CloseNotification" $ handleCloseNotification client config state
             ]
         }
+    _ <- forkIO $ hnotifDisplay client config state
     forever $ do
         updateStateIO client config state
         threadDelay (updateTime config)
@@ -50,10 +52,9 @@ updateState client _ state = do
     let (ids, ns) = unzip . Map.toList . notifications $ state
     newNs <- filterM (fmap not . hasExpired) ns
     let newMap = Map.fromList . zip ids $ newNs
+    
     -- send a signal for each removed notification
     let removed = Map.keys . Map.difference (notifications state) $ newMap
     mapM_ (\i -> emit client $ closeSignal i Expired) removed
-    print newNs
-    print removed
     return state { notifications = newMap }
 

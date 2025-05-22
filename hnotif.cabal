@@ -29,7 +29,7 @@ library
       System.HNotif.DBus.DBus
       System.HNotif.DBus.Meta
       System.HNotif.DBus.Notification
-      System.HNotif.Display
+      System.HNotif.Display.Display
       System.HNotif.HNotif
       System.HNotif.Notification
       System.HNotif.Types
