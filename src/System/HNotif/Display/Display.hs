@@ -12,7 +12,7 @@ import qualified Data.Map as Map
 import Graphics.UI.Gtk
 
 import Control.Concurrent.STM (TVar, readTVarIO, atomically, newTVarIO, writeTVar)
-import Control.Monad (forever, foldM, void, forM, foldM_)
+import Control.Monad (forever, foldM, void, foldM_)
 import Control.Concurrent (threadDelay, forkIO)
 
 type DisplayState = Map ID Window
@@ -42,10 +42,10 @@ updateWindows :: HNotifConfig -> HNotifState -> DisplayState -> IO DisplayState
 updateWindows config s ds = do
     eds <- foldr Map.delete ds <$> mapM hide (expiredNotifications s ds)
     updated <- foldM create eds (newNotifications s ds)
-    applyOffsets config s updated >> mapM_ widgetShow updated >> return updated
+    applyOffsets config s updated >> mapM_ widgetShowAll updated >> return updated
     where
         ns = notifications s
-        hide i = widgetHide (ds Map.! i) >> return i
+        hide i = widgetHideAll (ds Map.! i) >> return i
         create acc i = window config (i, ns Map.! i) >>= \(_,w) -> return $ Map.insert i w acc
 
 newNotifications :: HNotifState -> DisplayState -> [ ID ]
@@ -57,14 +57,34 @@ expiredNotifications s ds = Map.keys (Map.filterWithKey (\i _ -> not . Map.membe
 -- TODO: support for multiple monitors
 window :: HNotifConfig -> (ID, Notification) -> IO (ID, Window)
 window config (i,n) = do
-    win <- windowNewPopup
-    set win
+    w <- windowNewPopup
+
+    -- TODO: extract notification view structure to config
+    vbox <- vBoxNew False 10
+
+    title <- labelNew (Nothing :: Maybe String)
+    labelSetMarkup title ("<b>" ++ summary n ++ "</b>")
+    align1 <- alignmentNew 0 0.5 0 0
+    containerAdd align1 title
+
+    b <- labelNew $ Just (body n)
+    labelSetLineWrap b True
+    align2 <- alignmentNew 0 0.5 0 0
+    containerAdd align2 b
+
+    set w
         [ windowTitle := "hnotif"
         , windowAcceptFocus := False
+        , containerChild := vbox
+        , containerBorderWidth := 10
         ]
+
+    boxPackStart vbox align1 PackGrow 0
+    boxPackStart vbox align2 PackGrow 0
+
     let (dx,dy) = defaultSize config
-    windowSetDefaultSize win dx dy
-    return (i, win)
+    windowSetDefaultSize w dx dy
+    return (i, w)
 
 applyOffsets :: HNotifConfig -> HNotifState -> DisplayState -> IO ()
 applyOffsets config s ds = foldM_ (\(prev,l) (index,(i,_)) -> do
