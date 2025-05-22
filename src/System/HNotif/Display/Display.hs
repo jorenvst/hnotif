@@ -2,6 +2,7 @@ module System.HNotif.Display.Display where
 
 import System.HNotif.Configuration
 import System.HNotif.Types
+import System.HNotif.Display.Window (notificationWindow)
 
 import DBus.Client
 
@@ -46,45 +47,13 @@ updateWindows config s ds = do
     where
         ns = notifications s
         hide i = widgetHideAll (ds Map.! i) >> return i
-        create acc i = window config (i, ns Map.! i) >>= \(_,w) -> return $ Map.insert i w acc
+        create acc i = notificationWindow config (ns Map.! i) >>= \w -> return $ Map.insert i w acc
 
 newNotifications :: HNotifState -> DisplayState -> [ ID ]
 newNotifications s ds = Map.keys (Map.filterWithKey (\i _ -> not . Map.member i $ ds) (notifications s))
 
 expiredNotifications :: HNotifState -> DisplayState -> [ ID ]
 expiredNotifications s ds = Map.keys (Map.filterWithKey (\i _ -> not . Map.member i $ notifications s) ds)
-
--- TODO: support for multiple monitors
-window :: HNotifConfig -> (ID, Notification) -> IO (ID, Window)
-window config (i,n) = do
-    w <- windowNewPopup
-
-    -- TODO: extract notification view structure to config
-    vbox <- vBoxNew False 10
-
-    title <- labelNew (Nothing :: Maybe String)
-    labelSetMarkup title ("<b>" ++ summary n ++ "</b>")
-    align1 <- alignmentNew 0 0.5 0 0
-    containerAdd align1 title
-
-    b <- labelNew $ Just (body n)
-    labelSetLineWrap b True
-    align2 <- alignmentNew 0 0.5 0 0
-    containerAdd align2 b
-
-    set w
-        [ windowTitle := "hnotif"
-        , windowAcceptFocus := False
-        , containerChild := vbox
-        , containerBorderWidth := 10
-        ]
-
-    boxPackStart vbox align1 PackGrow 0
-    boxPackStart vbox align2 PackGrow 0
-
-    let (dx,dy) = defaultSize config
-    windowSetDefaultSize w dx dy
-    return (i, w)
 
 applyOffsets :: HNotifConfig -> HNotifState -> DisplayState -> IO ()
 applyOffsets config s ds = foldM_ (\(prev,l) (index,(i,_)) -> do
