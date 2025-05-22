@@ -7,11 +7,11 @@ type Spacing = Int
 type NotificationSize = (Int, Int)
 
 data HNotifConfig = HNotifConfig
-    { defaultTimeout :: Duration
-    , updateTime :: Int
+    { defaultTimeout :: Duration    -- how long a notification should be shown
+    , updateTime :: Int     -- how often the service refreshes (microseconds)
     , spawn :: Int -> Maybe (Int, Int) -> NotificationSize -> (Int, Int)  -- Maybe (Int, Int) represents the spawnposition of the previous notification (bottom right corner)
-    , defaultSize :: NotificationSize
-    , spacing :: (Spacing, Spacing)
+    , defaultSize :: NotificationSize   -- minimum size for a notification
+    , spacing :: (Spacing, Spacing)     -- spacing between notifications x and y respectively
     }
 
 columnSpawn :: (Spacing, Spacing) -> Int -> Maybe (Int, Int) -> NotificationSize -> (Int, Int)
