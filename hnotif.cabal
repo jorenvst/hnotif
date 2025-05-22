@@ -25,9 +25,6 @@ source-repository head
 
 library
   exposed-modules:
-      Old.System.HNotif
-      Old.System.HNotif.Meta
-      Old.System.HNotif.Notifications
       System.HNotif.Configuration
       System.HNotif.DBus.DBus
       System.HNotif.DBus.Meta

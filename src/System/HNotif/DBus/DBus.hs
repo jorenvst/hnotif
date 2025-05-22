@@ -27,7 +27,7 @@ hnotifDBus config state = do
             [ autoMethod "GetCapabilities" capabilities
             , autoMethod "GetServerInformation" serverInformation
             , autoMethod "Notify" $ handleNotification config state
-            , autoMethod "CloseNotification" $ handleCloseNotification config state
+            , autoMethod "CloseNotification" $ handleCloseNotification client config state
             ]
         }
     forever $ do
