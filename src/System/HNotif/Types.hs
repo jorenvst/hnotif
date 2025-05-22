@@ -27,6 +27,7 @@ data Notification = Notification
     , summary :: String
     , body :: String
     , expirationTime :: Expiration
+    , receiveTime :: POSIXTime
     } deriving (Show, Eq)
 
 -- the global state

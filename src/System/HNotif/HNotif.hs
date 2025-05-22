@@ -5,7 +5,6 @@ import System.HNotif.Types
 import System.HNotif.DBus.DBus
 
 import Control.Concurrent.STM
-import Control.Concurrent
 import Control.Monad (forever)
 
 hnotif :: HNotifConfig -> IO ()

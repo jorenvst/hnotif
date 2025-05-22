@@ -19,7 +19,7 @@ hasExpired n
     where (Just m) = expirationTime n
 
 makeNotification :: HNotifConfig -> String -> Word32 -> FilePath -> String -> String -> [ String ] -> Map String Variant -> Int32 -> IO (ID, Notification)
-makeNotification config a i _ s b _ _ et = fmap (\t -> (i, Notification a s b t)) (expiration (makeDuration config et))
+makeNotification config a i _ s b _ _ et = getPOSIXTime >>= \rt -> fmap (\t -> (i, Notification a s b t rt)) (expiration (makeDuration config et))
 
 makeDuration :: HNotifConfig -> Int32 -> Duration
 makeDuration _ 0 = Nothing
