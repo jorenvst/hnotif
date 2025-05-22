@@ -12,7 +12,7 @@ import Data.List ((\\))
 import Graphics.UI.Gtk
 
 import Control.Concurrent.STM (TVar, readTVarIO, modifyTVar, atomically, newTVarIO, writeTVar)
-import Control.Monad (forever, foldM)
+import Control.Monad (forever, foldM, void)
 import Control.Concurrent (threadDelay, forkIO)
 
 type DisplayState = Map ID Window
@@ -20,7 +20,7 @@ type DisplayStateVar = TVar DisplayState
 
 hnotifDisplay :: Client -> HNotifConfig -> HNotifStateVar -> IO ()
 hnotifDisplay client config state = do
-    _ <- initGUI
+    void initGUI
     dState <- newTVarIO Map.empty
     _ <- forkIO $ stepIO client config state dState
     mainGUI
@@ -40,11 +40,17 @@ step _ = updateWindows
 
 updateWindows :: HNotifConfig -> HNotifState -> DisplayState -> IO DisplayState
 updateWindows config s ds = do
-    eds <- foldr Map.delete ds <$> mapM (\i -> widgetHide (ds Map.! i) >> return i) (expiredNotifications s ds)
-    foldM (\a i -> (\(_,w) -> Map.insert i w a) <$> window config (i, ns Map.! i)) eds (newNotifications s ds) >>= mapM (\w -> widgetShow w >> return w)
+    eds <- foldr Map.delete ds <$> mapM hide (expiredNotifications s ds)
+    updated <- foldM create eds (newNotifications s ds)
+    mapM_ widgetShow updated >> return updated
     where
-        newns = newNotifications s ds
         ns = notifications s
+
+        hide :: ID -> IO ID
+        hide i = widgetHide (ds Map.! i) >> return i
+
+        create :: DisplayState -> ID -> IO DisplayState
+        create acc i = window config (i, ns Map.! i) >>= \(_,w) -> return $ Map.insert i w acc
 
 newNotifications :: HNotifState -> DisplayState -> [ ID ]
 newNotifications s ds = Map.keys (Map.filterWithKey (\i _ -> not . Map.member i $ ds) (notifications s))
