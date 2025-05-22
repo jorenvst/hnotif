@@ -12,16 +12,16 @@ notificationWindow config n = do
     set w
         [ windowAcceptFocus := False
         , containerChild := c
-        , containerBorderWidth := 10
+        , containerBorderWidth := (padding . notificationView $ config)
         ]
-    uncurry (windowSetDefaultSize w) (defaultSize config)
+    uncurry (windowSetDefaultSize w) (defaultSize . notificationView $ config)
     return w
 
 title :: HNotifConfig -> Notification -> IO Widget
 title config n = do
     label <- labelNew (Nothing :: Maybe String)
     labelSetMarkup label ("<b>" ++ summary n ++ "</b>")
-    align <- alignmentNew 0 0.5 0 0
+    align <- makeAlignment (summaryAlignment . notificationView $ config)
     containerAdd align label
     return $ toWidget align
 
@@ -29,14 +29,18 @@ content :: HNotifConfig -> Notification -> IO Widget
 content config n = do
     label <- labelNew $ Just (body n)
     labelSetLineWrap label True
-    align <- alignmentNew 0 0.5 0 0
+    align <- makeAlignment (bodyAlignment . notificationView $ config)
     containerAdd align label
     return $ toWidget align
 
 notificationContainer :: HNotifConfig -> Notification -> IO Widget
 notificationContainer config n = do
-    vbox <- vBoxNew False 10
+    vbox <- vBoxNew False (padding . notificationView $ config)
     title config n >>= \w -> boxPackStart vbox w PackGrow 0
     content config n >>= \w -> boxPackStart vbox w PackGrow 0
     return $ toWidget vbox
 
+makeAlignment :: TextAlignment -> IO Alignment
+makeAlignment LeftAlignment = alignmentNew 0 0.5 0 0
+makeAlignment RightAlignment = alignmentNew 1 0.5 0 0
+makeAlignment CenterAlignment = alignmentNew 0.5 0.5 0 0
