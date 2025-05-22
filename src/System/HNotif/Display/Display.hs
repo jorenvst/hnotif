@@ -11,8 +11,8 @@ import Data.List ((\\))
 
 import Graphics.UI.Gtk
 
-import Control.Concurrent.STM (TVar, readTVarIO, modifyTVar, atomically, newTVarIO)
-import Control.Monad (forever)
+import Control.Concurrent.STM (TVar, readTVarIO, modifyTVar, atomically, newTVarIO, writeTVar)
+import Control.Monad (forever, foldM)
 import Control.Concurrent (threadDelay, forkIO)
 
 type DisplayState = Map ID Window
@@ -22,30 +22,39 @@ hnotifDisplay :: Client -> HNotifConfig -> HNotifStateVar -> IO ()
 hnotifDisplay client config state = do
     _ <- initGUI
     dState <- newTVarIO Map.empty
-    _ <- forkIO $ watchIO client config state dState
+    _ <- forkIO $ stepIO client config state dState
     mainGUI
 
 -- TODO: not only watch for changed ids but also replaced notifications
-watchIO :: Client -> HNotifConfig -> HNotifStateVar -> DisplayStateVar -> IO ()
-watchIO client config state dState = forever $ do
-    ns <- notifications <$> readTVarIO state
-    let k1s = Map.keys ns
-    ws <- readTVarIO dState
-    let k2s = Map.keys ws
-
-    let newKs = k1s \\ k2s
-    newWindows <- Map.fromList . zip newKs <$> mapM (\i -> spawnWindow client config i (ns Map.! i)) newKs
-    atomically $ modifyTVar dState $ Map.union newWindows
-
-    let oldKS = k2s \\ k1s
-    oldWindows <- Map.fromList . zip oldKS <$> mapM (\i -> widgetHide (ws Map.! i)) oldKS
-    atomically $ modifyTVar dState (`Map.difference` oldWindows)
-
+-- TODO: when window is closed, update the global state and send signal
+stepIO :: Client -> HNotifConfig -> HNotifStateVar -> DisplayStateVar -> IO ()
+stepIO client config s ds = forever $ do
+    s' <- readTVarIO s
+    ds' <- readTVarIO ds
+    uds <- step client config s' ds'
+    atomically $ writeTVar ds uds
     threadDelay (updateTime config)
 
-spawnWindow :: Client -> HNotifConfig -> ID -> Notification -> IO Window
-spawnWindow _ _ i n = do
+step :: Client -> HNotifConfig -> HNotifState -> DisplayState -> IO DisplayState
+step _ = updateWindows
+
+updateWindows :: HNotifConfig -> HNotifState -> DisplayState -> IO DisplayState
+updateWindows config s ds = do
+    eds <- foldr Map.delete ds <$> mapM (\i -> widgetHide (ds Map.! i) >> return i) (expiredNotifications s ds)
+    foldM (\a i -> (\(_,w) -> Map.insert i w a) <$> window config (i, ns Map.! i)) eds (newNotifications s ds) >>= mapM (\w -> widgetShow w >> return w)
+    where
+        newns = newNotifications s ds
+        ns = notifications s
+
+newNotifications :: HNotifState -> DisplayState -> [ ID ]
+newNotifications s ds = Map.keys (Map.filterWithKey (\i _ -> not . Map.member i $ ds) (notifications s))
+
+expiredNotifications :: HNotifState -> DisplayState -> [ ID ]
+expiredNotifications s ds = Map.keys (Map.filterWithKey (\i _ -> not . Map.member i $ notifications s) ds)
+
+window :: HNotifConfig -> (ID, Notification) -> IO (ID, Window)
+window config (i,n) = do
     win <- windowNew
-    set win [ windowTitle := "window for " ++ show i ]
-    widgetShowAll win
-    return win
+    set win [ windowTitle := "id " ++ show i ]
+    return (i, win)
+
