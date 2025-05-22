@@ -26,4 +26,4 @@ For a list of currently supported options, see `src/System/HNotif/Configuration.
 
 # contributing
 
-Contributions are always welcome! I'm especially inexperienced in GTK, so feel free to open issues, discuss the code or even submit a pull request.
+Contributions are always welcome! I'm especially inexperienced in GTK, so feel free to open issues, discuss the code or even submit a pull request
