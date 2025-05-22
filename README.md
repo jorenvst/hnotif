@@ -22,6 +22,7 @@ For a list of currently supported options, see `src/System/HNotif/Configuration.
 - the look of the notification must be fully configurable in Haskell
 - ability to close a notification by pressing a button
 - more features provided by the dbus protocol (hyperlinks, markup, ...)
+- ...
 
 # contributing
 
