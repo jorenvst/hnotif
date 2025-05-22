@@ -9,16 +9,17 @@ type NotificationSize = (Int, Int)
 data HNotifConfig = HNotifConfig
     { defaultTimeout :: Duration
     , updateTime :: Int
-    , spawn :: NotificationSize -> Int -> (Int, Int)
+    , spawn :: Int -> Maybe (Int, Int) -> NotificationSize -> (Int, Int)  -- Maybe (Int, Int) represents the spawnposition of the previous notification (bottom right corner)
     }
 
-columnSpawn :: Offset -> Spacing -> NotificationSize -> Int -> (Int, Int)
-columnSpawn (ox,oy) spacing (_,sy) i = (ox, (sy + spacing) * i + oy)
+columnSpawn :: Spacing -> Int -> Maybe (Int, Int) -> NotificationSize -> (Int, Int)
+columnSpawn spacing _ Nothing _ = (spacing, spacing)
+columnSpawn spacing _ (Just (_,prevY)) _ = (spacing, prevY + spacing)
 
 defHNotifConfig :: HNotifConfig
 defHNotifConfig = HNotifConfig
     { defaultTimeout = seconds 2
     , updateTime = 100000
-    , spawn = columnSpawn (10, 10) 10
+    , spawn = columnSpawn 10
     }
 

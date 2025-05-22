@@ -12,7 +12,7 @@ import qualified Data.Map as Map
 import Graphics.UI.Gtk
 
 import Control.Concurrent.STM (TVar, readTVarIO, atomically, newTVarIO, writeTVar)
-import Control.Monad (forever, foldM, void, forM)
+import Control.Monad (forever, foldM, void, forM, foldM_)
 import Control.Concurrent (threadDelay, forkIO)
 
 type DisplayState = Map ID Window
@@ -67,15 +67,18 @@ window config (i,n) = do
     return (i, win)
 
 applyOffsets :: HNotifConfig -> HNotifState -> DisplayState -> IO ()
-applyOffsets config s ds = mapM_ (\(index,(i,_)) -> applyOffset config index (ds Map.! i)) (zip [0..] ns)
+applyOffsets config s ds = foldM_ (\(prev,l) (index,(i,_)) -> do
+        w <- applyOffset config index prev (ds Map.! i)
+        (sx,sy) <- windowGetSize w
+        (px,py) <- windowGetPosition w
+        return (Just (sx + px, sy + py), w : l)
+    ) (Nothing, []) (zip [0..] ns)
     where ns = sortBy (\(_,n1) (_,n2) -> compare (receiveTime n1) (receiveTime n2)) . Map.toList $ notifications s
 
-applyOffset :: HNotifConfig -> Int -> Window -> IO Window
-applyOffset config index w = do
-    let (x,y) = spawn config (getSize w) index
+applyOffset :: HNotifConfig -> Int -> Maybe (Int, Int) -> Window -> IO Window
+applyOffset config index prevN w = do
+    wSize <- windowGetSize w
+    let (x,y) = spawn config index prevN wSize
     windowMove w x y
     return w
 
--- TODO
-getSize :: Window -> NotificationSize
-getSize _ = (200, 100)
