@@ -45,11 +45,7 @@ updateWindows config s ds = do
     mapM_ widgetShow updated >> return updated
     where
         ns = notifications s
-
-        hide :: ID -> IO ID
         hide i = widgetHide (ds Map.! i) >> return i
-
-        create :: DisplayState -> ID -> IO DisplayState
         create acc i = window config (i, ns Map.! i) >>= \(_,w) -> return $ Map.insert i w acc
 
 newNotifications :: HNotifState -> DisplayState -> [ ID ]
