@@ -5,21 +5,21 @@ import Data.Word (Word32)
 import Data.Map (Map)
 import qualified Data.Map as Map
 
-import Data.Time.Clock
+import Data.Time.Clock.POSIX
 
 import GHC.Conc (TVar)
 import Graphics.UI.Gtk (Window)
 
 -- expiration
 type Duration = Maybe Int32
-type Expiration = Maybe UTCTime
+type Expiration = Maybe POSIXTime
 
 seconds :: Int32 -> Duration
 seconds n = Just $ n * 1000
 
 expiration :: Duration -> IO Expiration
 expiration Nothing = return Nothing
-expiration (Just ms) = Just . addUTCTime (fromIntegral ms * 1000000) <$> getCurrentTime
+expiration (Just ms) = Just . (+(fromIntegral ms / 1000)) <$> getPOSIXTime
 
 -- notification
 type ID = Word32
@@ -27,7 +27,7 @@ data Notification = Notification
     { appName :: String
     , summary :: String
     , body :: String
-    , expirationTime :: Maybe UTCTime
+    , expirationTime :: Expiration
     } deriving (Show, Eq)
 
 -- the global state

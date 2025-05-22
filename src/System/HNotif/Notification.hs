@@ -6,7 +6,7 @@ import System.HNotif.Configuration
 import DBus
 import DBus.Client
 
-import Data.Time.Clock
+import Data.Time.Clock.POSIX
 import Data.Maybe
 import Data.Word (Word32)
 import Data.Int (Int32)
@@ -16,7 +16,7 @@ import Data.Map (Map)
 hasExpired :: Notification -> IO Bool
 hasExpired n
     | isNothing $ expirationTime n = return False
-    | otherwise = (> m) <$> getCurrentTime
+    | otherwise = (> m) <$> getPOSIXTime
     where (Just m) = expirationTime n
 
 makeNotification :: HNotifConfig -> String -> Word32 -> FilePath -> String -> String -> [ String ] -> Map String Variant -> Int32 -> IO (ID, Notification)

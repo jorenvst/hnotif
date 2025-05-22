@@ -31,7 +31,7 @@ hnotifDBus config state = do
             ]
         }
     forever $ do
-        updateStateIO config state
+        updateStateIO client config state
         threadDelay (updateTime config)
 
 -- TODO: make sure main thread closes when this fails
@@ -40,14 +40,20 @@ handleResponse NamePrimaryOwner = return ()
 handleResponse NameAlreadyOwner = return ()
 handleResponse _ = putStrLn "failed to start dbus service" >> exitFailure
 
-updateStateIO :: HNotifConfig -> HNotifStateVar -> IO ()
-updateStateIO config state = do
-    s <- readTVarIO state >>= updateState config
+updateStateIO :: Client -> HNotifConfig -> HNotifStateVar -> IO ()
+updateStateIO client config state = do
+    s <- readTVarIO state >>= updateState client config
     atomically $ writeTVar state s
 
-updateState :: HNotifConfig -> HNotifState -> IO HNotifState
-updateState _ state = do
+updateState :: Client -> HNotifConfig -> HNotifState -> IO HNotifState
+updateState client _ state = do
     let (ids, ns) = unzip . Map.toList . notifications $ state
     newNs <- filterM (fmap not . hasExpired) ns
-    return state { notifications = Map.fromList . zip ids $ newNs }
+    let newMap = Map.fromList . zip ids $ newNs
+    -- send a signal for each removed notification
+    let removed = Map.keys . Map.difference (notifications state) $ newMap
+    mapM_ (\i -> emit client $ closeSignal i Expired) removed
+    print newNs
+    print removed
+    return state { notifications = newMap }
 
