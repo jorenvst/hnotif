@@ -1,8 +1,16 @@
 # hnotif
 
-hnotif is a minimal notification manager for Linux, written in Haskell. It's very much in it's early stages of development with just basic functionality for displaying notifications. The goal is to provide a customizable notification manager, configurable in Haskell. Right now, only basic configuration is available.
+hnotif is a minimal notification manager for Linux, written in Haskell. It's very much in its early stages of development with only basic functionality for displaying notifications. The goal is to provide a customizable notification manager, configurable in Haskell. Right now, only basic configuration is available.
 
-I'm writing this project mainly just for fun but it would be awesome if this project becomes useful to someone in the future (even if that someone might just be me).
+I'm writing this project mainly for fun but it would be awesome if this project becomes useful to someone in the future (even if that someone might just be me).
+
+# usage
+
+If you want to use this project, invoke `hnotif defHNotifConfig` from a Haskell file.
+
+For an example, see `app/Main.hs`. You can modify the configuration by providing record updates to the `defHNotifConfig`.
+
+For a list of currently supported options, see `src/System/HNotif/Configuration.hs` where the data type `HNotifConfig` is defined with some additional info.
 
 # features
 
@@ -17,4 +25,4 @@ I'm writing this project mainly just for fun but it would be awesome if this pro
 
 # contributing
 
-Contributions are always welcomed! I'm especially inexperienced in GTK, so feel free to open issues, discuss the code or even submit a pull request.
+Contributions are always welcome! I'm especially inexperienced in GTK, so feel free to open issues, discuss the code or even submit a pull request.
