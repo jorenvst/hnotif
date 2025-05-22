@@ -55,7 +55,6 @@ expiredNotifications :: HNotifState -> DisplayState -> [ ID ]
 expiredNotifications s ds = Map.keys (Map.filterWithKey (\i _ -> not . Map.member i $ notifications s) ds)
 
 -- TODO: support for multiple monitors
--- TODO: get sizes from config
 window :: HNotifConfig -> (ID, Notification) -> IO (ID, Window)
 window config (i,n) = do
     win <- windowNewPopup
@@ -63,7 +62,8 @@ window config (i,n) = do
         [ windowTitle := "hnotif"
         , windowAcceptFocus := False
         ]
-    windowSetDefaultSize win 200 100
+    let (dx,dy) = defaultSize config
+    windowSetDefaultSize win dx dy
     return (i, win)
 
 applyOffsets :: HNotifConfig -> HNotifState -> DisplayState -> IO ()
