@@ -16,11 +16,11 @@ For a list of currently supported options, see `src/System/HNotif/Configuration.
 
 - notification service compatible with v1.3 of the org.freedesktop.Notification service
 - written and configurable in Haskell (basic as of now)
+- ability to dismiss a notification by pressing a button
 
 # plans
 
 - the look of the notification must be fully configurable in Haskell
-- ability to close a notification by pressing a button
 - more features provided by the dbus protocol (hyperlinks, markup, ...)
 - ...
 
