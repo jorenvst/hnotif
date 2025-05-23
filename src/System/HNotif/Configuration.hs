@@ -34,7 +34,7 @@ rowSpawn (sx,sy) _ (Just (prevX,_)) _ = (prevX + sx, sy)
 defHNotifConfig :: HNotifConfig
 defHNotifConfig = HNotifConfig
     { defaultTimeout = seconds 2
-    , updateTime = 100000
+    , updateTime = 1000
     , spawn = columnSpawn (spacing defHNotifConfig)
     , spacing = (10, 10)
     , notificationView = defNotificationView
