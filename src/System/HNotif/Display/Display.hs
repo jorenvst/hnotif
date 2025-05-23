@@ -3,6 +3,7 @@ module System.HNotif.Display.Display where
 import System.HNotif.Configuration
 import System.HNotif.Types
 import System.HNotif.Display.Window (notificationWindow)
+import System.HNotif.DBus.Notification
 
 import DBus.Client
 
@@ -12,7 +13,7 @@ import qualified Data.Map as Map
 
 import Graphics.UI.Gtk
 
-import Control.Concurrent.STM (TVar, readTVarIO, atomically, newTVarIO, writeTVar)
+import Control.Concurrent.STM (TVar, readTVarIO, atomically, newTVarIO, writeTVar, modifyTVar)
 import Control.Monad (forever, foldM, void, foldM_)
 import Control.Concurrent (threadDelay, forkIO)
 
@@ -27,27 +28,36 @@ hnotifDisplay client config state = do
     mainGUI
 
 -- TODO: not only watch for changed ids but also replaced notifications
--- TODO: when window is closed, update the global state and send signal
 stepIO :: Client -> HNotifConfig -> HNotifStateVar -> DisplayStateVar -> IO ()
 stepIO client config s ds = forever $ do
     s' <- readTVarIO s
     ds' <- readTVarIO ds
-    uds <- step client config s' ds'
+    uds <- step (\i -> do
+        onNotificationDismiss client s ds i
+        ) config s' ds'
     atomically $ writeTVar ds uds
     threadDelay (updateTime config)
 
-step :: Client -> HNotifConfig -> HNotifState -> DisplayState -> IO DisplayState
-step _ = updateWindows
+step :: (ID -> IO ()) -> HNotifConfig -> HNotifState -> DisplayState -> IO DisplayState
+step = updateWindows
 
-updateWindows :: HNotifConfig -> HNotifState -> DisplayState -> IO DisplayState
-updateWindows config s ds = do
+updateWindows :: (ID -> IO ()) -> HNotifConfig -> HNotifState -> DisplayState -> IO DisplayState
+updateWindows onDismiss config s ds = do
     eds <- foldr Map.delete ds <$> mapM hide (expiredNotifications s ds)
     updated <- foldM create eds (newNotifications s ds)
     applyOffsets config s updated >> mapM_ widgetShowAll updated >> return updated
     where
         ns = notifications s
         hide i = widgetHideAll (ds Map.! i) >> return i
-        create acc i = notificationWindow config (ns Map.! i) >>= \w -> return $ Map.insert i w acc
+        create acc i = notificationWindow config (ns Map.! i) (onDismiss i) >>= \w -> return $ Map.insert i w acc
+
+onNotificationDismiss :: Client -> HNotifStateVar -> DisplayStateVar -> ID -> IO ()
+onNotificationDismiss client s ds i = do
+    ds' <- readTVarIO ds
+    widgetHideAll $ ds' Map.! i
+    atomically $ modifyTVar ds (Map.delete i)
+    atomically $ modifyTVar s (\s' -> s' { notifications = Map.delete i (notifications s') })
+    emit client $ closeSignal i Dismissed
 
 newNotifications :: HNotifState -> DisplayState -> [ ID ]
 newNotifications s ds = Map.keys (Map.filterWithKey (\i _ -> not . Map.member i $ ds) (notifications s))
